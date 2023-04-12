@@ -2,3 +2,15 @@
 elm-stuff
 # elm-repl generated files
 repl-temp-*
+
+elm.js
+
+# Dependency directories
+node_modules/
+
+build/
+
+*.log
+*.tgz
+*.bak
+*.tmp

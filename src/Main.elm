@@ -6,8 +6,6 @@ import Color exposing (Color)
 import Dict exposing (Dict)
 import Html exposing (Html, button, div, text)
 import Json.Decode as Decode
-import Svg exposing (..)
-import Svg.Attributes exposing (..)
 
 
 
@@ -148,22 +146,16 @@ update msg model =
 -- VIEW
 
 
-atomView : Atom -> Svg.Svg msg
+atomView : Atom -> Html msg
 atomView atom =
-    circle
-        [ cx "10"
-        , cy "20"
-        , r "25"
-        , fill (Color.toCssString Color.blue)
-        ]
-        []
+    case atom of
+        A ->
+            text " a "
+
+        B ->
+            text " b "
 
 
 view : Model -> Html Msg
 view model =
-    svg
-        [ Svg.Attributes.width (String.fromInt width)
-        , Svg.Attributes.height (String.fromInt height)
-        , viewBox (String.join " " [ "0", "0", String.fromInt width, String.fromInt height ])
-        ]
-        (List.map atomView model.state)
+    div [] (List.map atomView model.state)

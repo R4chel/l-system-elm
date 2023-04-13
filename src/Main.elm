@@ -4,8 +4,10 @@ import Browser
 import Browser.Events exposing (onKeyPress)
 import Color exposing (Color)
 import Dict exposing (Dict)
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, button, div)
 import Json.Decode as Decode
+import Svg exposing (..)
+import Svg.Attributes as SvgAttr exposing (..)
 
 
 
@@ -14,12 +16,12 @@ import Json.Decode as Decode
 
 width : Int
 width =
-    500
+    1000
 
 
 height : Int
 height =
-    500
+    1000
 
 
 
@@ -44,8 +46,19 @@ type Atom
     | B
 
 
+type Constant
+    = F
+    | Plus
+    | Minus
+
+
+type Symbol
+    = Atom Atom
+    | Constant Constant
+
+
 type alias Exp =
-    List Atom
+    List Symbol
 
 
 type alias Rules =
@@ -76,20 +89,23 @@ init : () -> ( Model, Cmd Msg )
 init () =
     let
         lsystem =
-            { axiom = [ A ]
-            , rules =
-                \atom ->
-                    case atom of
-                        A ->
-                            [ A, B, A ]
-
-                        B ->
-                            [ B, B, B ]
+            { axiom = [ Atom A ]
+            , rules = rules
             }
     in
     ( { lsystem = lsystem, state = lsystem.axiom }
     , Cmd.none
     )
+
+
+rules : Rules
+rules atom =
+    case atom of
+        A ->
+            [ Constant Plus, Atom B, Constant Minus, Atom A, Constant F, Atom A, Constant Minus, Constant F, Atom B, Constant Plus ]
+
+        B ->
+            [ Constant Minus, Atom A, Constant F, Constant Plus, Atom B, Constant F, Atom B, Constant Plus, Constant F, Atom A, Constant Minus ]
 
 
 
@@ -139,23 +155,78 @@ update msg model =
             ( { model | state = model.lsystem.axiom }, Cmd.none )
 
         Evolve ->
-            ( { model | state = List.concatMap model.lsystem.rules model.state }, Cmd.none )
+            ( { model
+                | state =
+                    List.concatMap
+                        (\symbol ->
+                            case symbol of
+                                Atom atom ->
+                                    model.lsystem.rules atom
+
+                                (Constant _) as c ->
+                                    [ c ]
+                        )
+                        model.state
+              }
+            , Cmd.none
+            )
 
 
 
 -- VIEW
 
 
-atomView : Atom -> Html msg
-atomView atom =
-    case atom of
-        A ->
-            text " a "
+lineLength : Float
+lineLength =
+    5
 
-        B ->
-            text " b "
+
+executeCommands : Exp -> List (Svg.Svg msg)
+executeCommands exp =
+    let
+        result =
+            List.foldl
+                (\symbol acc ->
+                    case symbol of
+                        Atom _ ->
+                            acc
+
+                        Constant F ->
+                            let
+                                newX =
+                                    acc.x + lineLength * cos acc.direction
+                            in
+                            let
+                                newY =
+                                    acc.y + lineLength * sin acc.direction
+                            in
+                            let
+                                newPath =
+                                    Svg.line [ x1 (String.fromFloat acc.x), y1 (String.fromFloat acc.y), x2 (String.fromFloat newX), y2 (String.fromFloat newY), stroke (Color.toCssString Color.blue) ] []
+                            in
+                            { x = newX
+                            , y = newY
+                            , direction = acc.direction
+                            , msgs = newPath :: acc.msgs
+                            }
+
+                        Constant Plus ->
+                            { acc | direction = acc.direction + pi / 2 }
+
+                        Constant Minus ->
+                            { acc | direction = acc.direction - pi / 2 }
+                )
+                { x = 0, y = toFloat height / 2, direction = 0, msgs = [] }
+                exp
+    in
+    result.msgs
 
 
 view : Model -> Html Msg
 view model =
-    div [] (List.map atomView model.state)
+    svg
+        [ SvgAttr.width (String.fromInt width)
+        , SvgAttr.height (String.fromInt height)
+        , viewBox (String.join " " [ "0", "0", String.fromInt width, String.fromInt height ])
+        ]
+        (executeCommands model.state)

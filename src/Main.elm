@@ -78,6 +78,7 @@ type alias LSystem =
 type alias Model =
     { lsystem : LSystem
     , state : Exp
+    , order : Int
     }
 
 
@@ -93,7 +94,7 @@ init () =
             , rules = rules
             }
     in
-    ( { lsystem = lsystem, state = lsystem.axiom }
+    ( { lsystem = lsystem, state = lsystem.axiom, order = 1 }
     , Cmd.none
     )
 
@@ -102,7 +103,7 @@ rules : Rules
 rules atom =
     case atom of
         A ->
-            [ Constant Plus, Atom B, Constant Minus, Atom A, Constant F, Atom A, Constant Minus, Constant F, Atom B, Constant Plus ]
+            [ Constant Plus, Atom B, Constant F, Constant Minus, Atom A, Constant F, Atom A, Constant Minus, Constant F, Atom B, Constant Plus ]
 
         B ->
             [ Constant Minus, Atom A, Constant F, Constant Plus, Atom B, Constant F, Atom B, Constant Plus, Constant F, Atom A, Constant Minus ]
@@ -152,11 +153,12 @@ update msg model =
             ( model, Cmd.none )
 
         Reset ->
-            ( { model | state = model.lsystem.axiom }, Cmd.none )
+            ( { model | state = model.lsystem.axiom, order = 1 }, Cmd.none )
 
         Evolve ->
             ( { model
-                | state =
+                | order = model.order + 1
+                , state =
                     List.concatMap
                         (\symbol ->
                             case symbol of
@@ -176,13 +178,14 @@ update msg model =
 -- VIEW
 
 
-lineLength : Float
-lineLength =
-    5
-
-
-executeCommands : Exp -> List (Svg.Svg msg)
-executeCommands exp =
+executeCommands : Model -> List (Svg.Svg msg)
+executeCommands model =
+    let
+        lineLength =
+            toFloat
+                (Basics.min width height)
+                / toFloat model.order
+    in
     let
         result =
             List.foldl
@@ -216,8 +219,8 @@ executeCommands exp =
                         Constant Minus ->
                             { acc | direction = acc.direction - pi / 2 }
                 )
-                { x = 0, y = toFloat height / 2, direction = 0, msgs = [] }
-                exp
+                { x = 0, y = 0, direction = 0, msgs = [] }
+                model.state
     in
     result.msgs
 
@@ -229,4 +232,4 @@ view model =
         , SvgAttr.height (String.fromInt height)
         , viewBox (String.join " " [ "0", "0", String.fromInt width, String.fromInt height ])
         ]
-        (executeCommands model.state)
+        (executeCommands model)

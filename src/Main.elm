@@ -103,7 +103,7 @@ rules : Rules
 rules atom =
     case atom of
         A ->
-            [ Constant Plus, Atom B, Constant F, Constant Minus, Atom A, Constant F, Atom A, Constant Minus, Constant F, Atom B, Constant Plus ]
+            [ Constant Plus, Atom B, Constant Minus, Atom A, Constant F, Atom A, Constant Minus, Constant F, Atom B, Constant Plus ]
 
         B ->
             [ Constant Minus, Atom A, Constant F, Constant Plus, Atom B, Constant F, Atom B, Constant Plus, Constant F, Atom A, Constant Minus ]
@@ -182,9 +182,11 @@ executeCommands : Model -> List (Svg.Svg msg)
 executeCommands model =
     let
         lineLength =
-            toFloat
-                (Basics.min width height)
-                / toFloat model.order
+            10
+
+        -- toFloat
+        --     (Basics.min width height)
+        --     / toFloat model.order
     in
     let
         result =

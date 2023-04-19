@@ -1,10 +1,9 @@
-module Main exposing (Atom(..), Model, main)
+module Main exposing (Atom(..), Exp, LSystem, Model, Msg, Rules, Symbol, main)
 
 import Browser
 import Browser.Events exposing (onKeyPress)
-import Color exposing (Color)
-import Dict exposing (Dict)
-import Html exposing (Html, button, div)
+import Color
+import Html exposing (Html)
 import Json.Decode as Decode
 import Svg exposing (..)
 import Svg.Attributes as SvgAttr exposing (..)
@@ -28,6 +27,7 @@ height =
 -- MAIN
 
 
+main : Program () Model Msg
 main =
     Browser.element
         { init = init
@@ -89,6 +89,7 @@ type alias Model =
 init : () -> ( Model, Cmd Msg )
 init () =
     let
+        lsystem : { axiom : List Symbol, rules : Rules }
         lsystem =
             { axiom = [ Atom A ]
             , rules = rules
@@ -132,7 +133,7 @@ toKey string =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     onKeyPress keyDecoder
 
 
@@ -181,12 +182,13 @@ update msg model =
 executeCommands : Model -> List (Svg.Svg msg)
 executeCommands model =
     let
+        lineLength : Float
         lineLength =
             toFloat
                 (Basics.min width height)
                 / toFloat (2 ^ model.order - 1)
-    in
-    let
+
+        result : { x : Float, y : Float, direction : Float, msgs : List (Svg msg) }
         result =
             List.foldl
                 (\symbol acc ->
@@ -196,14 +198,15 @@ executeCommands model =
 
                         Constant F ->
                             let
+                                newX : Float
                                 newX =
                                     acc.x + lineLength * cos acc.direction
-                            in
-                            let
+
+                                newY : Float
                                 newY =
                                     acc.y + lineLength * sin acc.direction
-                            in
-                            let
+
+                                newPath : Svg msg
                                 newPath =
                                     Svg.line [ x1 (String.fromFloat acc.x), y1 (String.fromFloat acc.y), x2 (String.fromFloat newX), y2 (String.fromFloat newY), stroke (Color.toCssString Color.blue) ] []
                             in
